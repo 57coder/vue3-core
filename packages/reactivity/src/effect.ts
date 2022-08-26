@@ -12,6 +12,7 @@ class ReactiveEffect<T = any> {
       this.parent = activeEffect;
       activeEffect = this;
       // 当稍后调用取值操作时，就可以获取到这个全局的 activeEffect 了
+      cleanupEffect(this);
       const result = this.fn();
       return result;
     } finally {
@@ -34,6 +35,7 @@ export function track(target: object, type: string, key: PropertyKey) {
   }
   let shouldTrack = !dep.has(activeEffect);
   if (shouldTrack) {
+    console.log("走你");
     dep.add(activeEffect);
     activeEffect.deps.push(dep);
   }
@@ -58,7 +60,17 @@ export function trigger(
     depsMap.forEach((deps: any, key: string) => {
       key === "length" && run(deps);
     });
-  } else run(depsMap.get(key));
+  } else run([...depsMap.get(key)]);
+}
+
+function cleanupEffect(effect: ReactiveEffect) {
+  const { deps } = effect;
+  if (deps.length) {
+    for (let i = 0; i < deps.length; i++) {
+      deps[i].delete(effect);
+    }
+    effect.deps.length = 0;
+  }
 }
 
 export function effect<T = any>(fn: () => T) {
