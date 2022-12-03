@@ -1,5 +1,10 @@
 export let activeEffect: ReactiveEffect | undefined;
 
+export interface ReactiveEffectRunner<T = any> {
+  (): T
+  effect: ReactiveEffect
+}
+
 class ReactiveEffect<T = any> {
   active = true;
   parent: ReactiveEffect | undefined = undefined;
@@ -18,6 +23,12 @@ class ReactiveEffect<T = any> {
     } finally {
       activeEffect = this.parent;
       this.parent = undefined;
+    }
+  }
+  stop() {
+    if (this.active) {
+      this.active = false
+      cleanupEffect(this)
     }
   }
 }
@@ -77,4 +88,8 @@ export function effect<T = any>(fn: () => T) {
   // 创建 响应式 effect
   const _effect = new ReactiveEffect(fn);
   _effect.run();
+
+  const runner = _effect.run.bind(_effect) as ReactiveEffectRunner
+  runner.effect = _effect
+  return runner
 }
